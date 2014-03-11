@@ -1,17 +1,17 @@
 package adam.learn.testvideo;
 
-import android.support.v7.app.ActionBarActivity;
-import android.support.v7.app.ActionBar;
-import android.support.v4.app.Fragment;
-import android.support.v7.media.*;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v7.app.ActionBarActivity;
+import android.support.v7.media.MediaRouteSelector;
+import android.support.v7.media.MediaRouter;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.os.Build;
-//import com.google.android.gms.cast.*;
+
+import com.google.android.gms.cast.CastMediaControlIntent;
 
 public class MainActivity extends ActionBarActivity {
     private MediaRouter mMediaRouter;
@@ -28,9 +28,9 @@ public class MainActivity extends ActionBarActivity {
                     .commit();
         }
         mMediaRouter = MediaRouter.getInstance(getApplicationContext());
-        /*mMediaRouteSelector = new MediaRouteSelector.Builder()
+        mMediaRouteSelector = new MediaRouteSelector.Builder()
                 .addControlCategory(CastMediaControlIntent.categoryForCast("YOUR_APPLICATION_ID"))
-                .build();*/
+                .build();
     }
 
 

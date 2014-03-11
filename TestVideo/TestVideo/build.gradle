@@ -22,7 +22,5 @@ dependencies {
     compile 'com.android.support:appcompat-v7:+'
     compile 'com.android.support:mediarouter-v7:+'
     compile 'com.android.support:support-v4:18.0.+'
-    compile 'com.google.android.gms:play-services:4.1.32'
-    compile files('build/exploded-bundles/ComGoogleAndroidGmsPlayServices4132.aar/classes.jar')
-    compile files('build/exploded-bundles/ComAndroidSupportMediarouterV71901.aar/classes.jar')
+    compile 'com.google.android.gms:play-services:4.2.+'
 }
