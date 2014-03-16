@@ -7,18 +7,26 @@ import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.MediaRouteActionProvider;
 import android.support.v7.media.MediaRouteSelector;
 import android.support.v7.media.MediaRouter;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.google.android.gms.cast.ApplicationMetadata;
+import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.cast.CastMediaControlIntent;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
 
 public class MainActivity extends ActionBarActivity {
 
     private String RECEIVER_APP_ID = "B4CE97D6";
+    private boolean mWaitingForReconnect = true;
 
     private MediaRouter mMediaRouter;
     private MediaRouteSelector mMediaRouteSelector;
@@ -102,17 +110,101 @@ public class MainActivity extends ActionBarActivity {
 
     private class MyMediaRouterCallback extends MediaRouter.Callback {
 
+        private GoogleApiClient mApiClient;
+        private CastListener mCastClientListener;
+        private ConnectionCallbacks mConnectionCallbacks;
+        private ConnectionFailedListener mConnectionFailedListener;
+
         @Override
         public void onRouteSelected(MediaRouter router, MediaRouter.RouteInfo info) {
             mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
             String routeId = info.getId();
+
+            mCastClientListener = new CastListener();
+
+            Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions.builder(mSelectedDevice, mCastClientListener);
+
+            mApiClient = new GoogleApiClient.Builder(getBaseContext())
+                    .addApi(Cast.API, apiOptionsBuilder.build())
+                    .addConnectionCallbacks(mConnectionCallbacks)
+                    .addOnConnectionFailedListener(mConnectionFailedListener)
+                    .build();
+
+            mApiClient.connect();
 
         }
 
         @Override
         public void onRouteUnselected(MediaRouter router, MediaRouter.RouteInfo info) {
             //teardown();
+            mCastClientListener = null;
             mSelectedDevice = null;
+        }
+
+        private class CastListener extends Cast.Listener {
+            @Override
+            public void onApplicationStatusChanged() {
+                if (mApiClient != null) {
+                    Log.d("", "onApplicationStatusChanged: " + Cast.CastApi.getApplicationStatus(mApiClient));
+                }
+            }
+
+            @Override
+            public void onVolumeChanged() {
+                if (mApiClient != null) {
+                    Log.d("", "onVolumeChanged: " + Cast.CastApi.getVolume(mApiClient));
+                }
+            }
+
+            @Override
+            public void onApplicationDisconnected(int errorCode) {
+                //teardown();
+            }
+        }
+
+        private class ConnectionCallbacks implements GoogleApiClient.ConnectionCallbacks {
+
+            @Override
+            public void onConnected(Bundle connectionHint) {
+                if(mWaitingForReconnect) {
+                    mWaitingForReconnect = false;
+                    //reconnectChannels();
+                } else {
+                    try {
+                        Cast.CastApi.launchApplication(mApiClient, RECEIVER_APP_ID, false)
+                                .setResultCallback(
+                                    new ResultCallback<Cast.ApplicationConnectionResult>() {
+                                      @Override
+                                    public void onResult(Cast.ApplicationConnectionResult result) {
+                                          Status status = result.getStatus();
+                                          if(status.isSuccess()) {
+                                              ApplicationMetadata applicationMetadata = result.getApplicationMetadata();
+                                              String sessionId = result.getSessionId();
+                                              String applicationStatus = result.getApplicationStatus();
+                                              boolean wasLaunched = result.getWasLaunched();
+                                              // ...
+                                          } else {
+                                              //teardown();
+                                          }
+                                      }
+                                    });
+                    } catch (Exception e) {
+                        Log.e("", "Failed to launch application");
+                    }
+                }
+            }
+
+            @Override
+            public void onConnectionSuspended(int cause) {
+                mWaitingForReconnect = true;
+            }
+        }
+
+        private class ConnectionFailedListener implements GoogleApiClient.OnConnectionFailedListener {
+            @Override
+            public void onConnectionFailed(ConnectionResult result) {
+                //teardown();
+            }
         }
     }
 
